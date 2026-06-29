@@ -13,7 +13,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -63,6 +63,7 @@ async def fix_head_requests(request: Request, call_next):
         return Response(content=b"", status_code=response.status_code)
     return await call_next(request)
 # ---------------------------
+
 app.include_router(router)
 
 
