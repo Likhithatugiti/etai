@@ -40,22 +40,20 @@ class HybridRetriever:
         self._bm25 = BM25Okapi(self._tokenized_corpus)
 
         # FAISS + embeddings
-        from sentence_transformers import SentenceTransformer
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
         import faiss
-        self._embedder = SentenceTransformer("all-MiniLM-L6-v2")
-        embeddings = self._embedder.encode(texts, show_progress_bar=False,
-                                           convert_to_numpy=True)
+        import os
+        
+        # We use Google Gemini for embeddings to save local memory
+        self._embedder = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+        embeddings_list = self._embedder.embed_documents(texts)
+        embeddings = np.array(embeddings_list, dtype=np.float32)
         dim = embeddings.shape[1]
         self._index = faiss.IndexFlatL2(dim)
-        self._index.add(embeddings.astype(np.float32))
+        self._index.add(embeddings)
         self._embeddings = embeddings
 
-        # CrossEncoder
-        try:
-            from sentence_transformers import CrossEncoder
-            self._reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        except Exception:
-            self._reranker = None
+        self._reranker = None
 
     def update(self, new_chunks: List[Dict]):
         """Incremental update — rebuild on new chunks only."""
@@ -78,7 +76,8 @@ class HybridRetriever:
 
         # 2. FAISS dense
         import faiss
-        q_emb = self._embedder.encode([query], convert_to_numpy=True).astype(np.float32)
+        q_emb_list = self._embedder.embed_query(query)
+        q_emb = np.array([q_emb_list], dtype=np.float32)
         distances, indices = self._index.search(q_emb, self.top_k * 2)
         max_dist = float(distances[0].max()) + 1e-9
         for dist, idx in zip(distances[0], indices[0]):
@@ -105,19 +104,8 @@ class HybridRetriever:
         sorted_ids = sorted(candidate_ids, key=lambda i: candidate_ids[i], reverse=True)
         candidates = [self._chunks[i] for i in sorted_ids[:self.top_k * 2] if i < len(self._chunks)]
 
-        # 4. CrossEncoder re-rank
-        if self._reranker and candidates:
-            pairs = [[query, c["text"]] for c in candidates]
-            scores = self._reranker.predict(pairs)
-            ranked = sorted(zip(scores, candidates), key=lambda x: x[0], reverse=True)
-            results = []
-            for score, chunk in ranked[:self.top_k]:
-                c = dict(chunk)
-                c["reranker_score"] = float(score)
-                c["hybrid_score"] = candidate_ids.get(self._chunks.index(chunk)
-                                                       if chunk in self._chunks else 0, 0)
-                results.append(c)
-            return results
+        # 4. CrossEncoder re-rank (Removed to save memory)
+        # We rely entirely on the hybrid score
 
         # fallback: return by hybrid score
         results = []

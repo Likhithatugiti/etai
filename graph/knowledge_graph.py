@@ -22,10 +22,17 @@ REGULATION_PATTERN = re.compile(
 class IndustrialKG:
     def __init__(self):
         self.graph = nx.DiGraph()
-        try:
-            self._nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            self._nlp = None
+        self._nlp_model = None
+
+    @property
+    def _nlp(self):
+        if self._nlp_model is None:
+            try:
+                import spacy
+                self._nlp_model = spacy.load("en_core_web_sm")
+            except OSError:
+                self._nlp_model = False # Mark as failed so we don't retry repeatedly
+        return self._nlp_model if self._nlp_model is not False else None
 
     # ── Node helpers ────────────────────────────────────────────────────────
 
