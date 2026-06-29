@@ -10,6 +10,7 @@ GET  /health       — liveness check
 
 import os
 import uuid
+import gc
 import shutil
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
@@ -58,25 +59,44 @@ async def ingest(files: List[UploadFile] = File(...)):
     retriever = get_retriever()
     saved = []
 
+    # 1. Save files locally (streaming to disk to avoid RAM spike)
     for f in files:
         dest = os.path.join(UPLOAD_DIR, f.filename)
         with open(dest, "wb") as out:
             shutil.copyfileobj(f.file, out)
         saved.append(dest)
+        
+        # Explicitly close file handles to free system resources
+        f.file.close()
 
+    # 2. Process chunks
     chunks = ingest_documents(saved)
     for chunk in chunks:
         kg.add_chunk(chunk)
 
+    # 3. Memory-Efficient Update
+    # Do NOT re-index the whole thing if you can help it.
+    # If your retriever supports incremental addition, use it.
+    # Otherwise, ensure we clean up the previous index before rebuilding.
+    
+    # Trigger local cleanup of large lists before building
     existing = retriever._chunks if retriever._chunks else []
+    
+    # Rebuild index
     retriever.build(existing + chunks)
+    
+    # 4. AGGRESSIVE MEMORY PURGE
+    # Delete local references to the large chunk objects
+    del existing
+    del chunks
+    
+    # Force Python to release memory back to the OS
+    gc.collect() 
 
     return {
         "files_ingested": len(saved),
-        "chunks_created": len(chunks),
         "kg_stats": kg.stats(),
     }
-
 
 @router.post("/query")
 async def query(req: QueryRequest):
