@@ -1,0 +1,37 @@
+# Core
+langgraph>=0.2.0
+langchain-core>=0.2.0
+langchain-groq>=0.1.0
+langchain-google-genai>=1.0.0
+
+# LLM providers
+groq
+google-generativeai
+
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart
+pydantic>=2.0
+
+# Document parsing
+pdfplumber
+pypdf
+python-docx
+python-pptx
+pandas
+openpyxl
+
+# Retrieval
+sentence-transformers>=2.7.0
+faiss-cpu>=1.8.0
+rank-bm25>=0.2.2
+
+# NLP / KG
+spacy>=3.7.0
+networkx>=3.3
+
+# Utils
+python-dotenv
+requests
+streamlit>=1.35.0
