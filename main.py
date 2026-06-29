@@ -22,6 +22,7 @@ from retrieval import HybridRetriever
 from pipeline import build_pipeline
 from api.routes import router
 from api.context import init_context
+from starlette.responses import Response
 
 
 @asynccontextmanager
@@ -54,6 +55,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def fix_head_requests(request: Request, call_next):
+    if request.method == "HEAD":
+        request.scope["method"] = "GET"
+        response = await call_next(request)
+        return Response(content=b"", status_code=response.status_code)
+    return await call_next(request)
+# ---------------------------
 app.include_router(router)
 
 
