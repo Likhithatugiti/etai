@@ -9,7 +9,7 @@ import streamlit as st
 import requests
 import json
 
-API = "http://localhost:8000"
+API = "https://etai-ybmt.onrender.com/"
 
 st.set_page_config(page_title="AXON — Industrial Knowledge Intelligence", layout="wide")
 
