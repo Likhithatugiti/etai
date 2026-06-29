@@ -20,13 +20,15 @@ st.caption("Unified Asset & Operations Brain | Multi-Agent RAG + LangGraph + KG 
 with st.sidebar:
     st.header("Knowledge Graph")
     try:
-        stats = requests.get(f"{API}/kg/stats", timeout=3).json()
+        # Changed "/kg/stats" to "kg/stats"
+        stats = requests.get(f"{API.rstrip('/')}/kg/stats", timeout=3).json()
+        
         st.metric("Nodes", stats.get("nodes", 0))
         st.metric("Edges", stats.get("edges", 0))
         with st.expander("Node types"):
             st.json(stats.get("node_types", {}))
-    except Exception:
-        st.warning("Backend not reachable. Start: uvicorn main:app --port 8000")
+    except Exception as e:
+        st.warning(f"Backend not reachable: {e}")
 
 # ── Tab layout ────────────────────────────────────────────────────────────────
 tab_ingest, tab_query, tab_feedback = st.tabs(
