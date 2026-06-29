@@ -46,7 +46,7 @@ with tab_ingest:
     if st.button("Ingest", disabled=not files):
         with st.spinner("Ingesting..."):
             resp = requests.post(
-                f"{API}/ingest",
+                f"{API.rstrip('/')}/ingest",
                 files=[("files", (f.name, f.read(), f.type)) for f in files],
             )
         if resp.ok:
@@ -67,7 +67,7 @@ with tab_query:
     if st.button("Run AXON", disabled=not query):
         with st.spinner("Running AXON reasoning pipeline..."):
             resp = requests.post(
-                f"{API}/query",
+                f"{API.rstrip('/')}/query",
                 json={"query": query},
                 timeout=120,
             )
@@ -119,7 +119,7 @@ with tab_feedback:
     if st.button("Submit Correction", disabled=not correction):
         with st.spinner("Updating knowledge base..."):
             resp = requests.post(
-                f"{API}/feedback",
+                f"{API.rstrip('/')}/feedback",
                 json={"correction_text": correction},
                 timeout=30,
             )
